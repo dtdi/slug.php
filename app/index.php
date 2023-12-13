@@ -42,6 +42,8 @@
           <option value="studly">Studly</option>
           <option value="kebap">Kebap</option>
           <option value="snake">Snake</option>
+          <option value="mail">Mail</option>
+
         </select>
 
         <button type="button" onclick="submitForm()">Submit</button>
@@ -90,6 +92,8 @@
       <li><code>studly</code>: StudlyCase slug.</li>
       <li><code>kebap</code>: KebapCase slug.</li>
       <li><code>snake</code>: Snake_case slug.</li>
+      <li><code>mail</code>: Mail-Safe. Converts "Lastname, Firstname Secondname" to "firstname-secondname.lastname"</li>
+
     </ul>
     <h3 id="response">Response</h3>
     <p>The API returns a JSON response with the following information:</p>
