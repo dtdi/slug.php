@@ -4,6 +4,8 @@ use Dotenv\Dotenv;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Http\JsonResponse;
+use Sqids\Sqids;
+
 /*
 |--------------------------------------------------------------------------
 | Register The Auto Loader
@@ -35,10 +37,12 @@ if (!$name) {
 
 
 $apiKey = $request->input('apiKey', '');
-$random = (bool) $request->input('random', $_ENV['DEFAULT_RANDOM']);
+$is_random = (bool) $request->input('random', false);
 $limit = (int) $request->input('limit', $_ENV['DEFAULT_LIMIT']);
 $method = Str::lower($request->input('method', $_ENV['DEFAULT_METHOD']));
 $methods = ['slug', 'studly', 'kebap', 'snake'];
+$id = $request->input('id', null);
+$is_hash = $request->input('hash', false);
 
 if (!$apiKey != 'adfa' && $_ENV['RESTRICT_API'] == true) {
   (new JsonResponse(['message' => 'not allowed'], 403))->send();
@@ -51,33 +55,59 @@ if (!in_array($method, $methods, true)) {
 
 $random_str = "";
 $digits = 2;
-if ($random) {
-  $random_str = (" " . rand(pow(10, $digits - 1), pow(10, $digits) - 1));
+$random = null;
+if ($is_random) {
+  $random_int = (int) rand(pow(10, $digits - 1), pow(10, $digits) - 1);
+  $random_str = ("-" . $random_int);
+  if ($is_hash == true) {
+    $hash = (new Sqids(minLength: 3))->encode([(int) $random_int]);
+    $random_str = "-" . $hash;
+  }
+}
+
+$id_str = "";
+if ($id !== null) {
+  $id_str = "-" . (int) $id;
+  if ($is_hash == true) {
+    $hash = (new Sqids(minLength: 3))->encode([(int) $id]);
+    $id_str = "-" . $hash;
+  }
 }
 
 $text = "";
 $text = Str::$method($name);
 
 $is_trimmed = false;
-$len = Str::length($text . $random_str);
+$len = Str::length($text . $random_str . $id_str);
 
 if ($len > $limit) {
   $is_trimmed = true;
-  $text = Str::substr($text, 0, min($text, $limit - Str::length($random_str)));
+  $text = Str::substr($text, 0, min($text, $limit - Str::length($random_str . $id_str)));
 }
-$text = Str::$method($text . $random_str);
+$text = Str::$method($text . $id_str . $random_str);
+
+$data = array(
+  'name' => $name,
+  'name_clean' => Str::squish($name),
+  'method' => $method,
+  'slug' => $text,
+  'random' => $is_random,
+  'limit' => $limit,
+  'is_trimmed' => $is_trimmed,
+  'is_hashed' => $is_hash
+);
+if ($id) {
+  $data['id'] = $id;
+}
+if ($is_random) {
+  $data['random_int'] = $random_int;
+}
+if ($is_hash) {
+  $data['hashed_id'] = $hash;
+}
 
 $response = new JsonResponse(
-  array(
-    'name' => $name,
-    'name_clean' => Str::squish($name),
-    'method' => $method,
-    'slug' => $text,
-    'random' => $random,
-    'random_str' => $random_str,
-    'limit' => $limit,
-    'is_trimmed' => $is_trimmed
-  )
+  $data
 );
 
 $response->send();
